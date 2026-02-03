@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const DAYS_OF_WEEK_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -54,6 +54,27 @@ export default function Home() {
   const [fabTaskTitle, setFabTaskTitle] = useState('')
   const [fabTaskDate, setFabTaskDate] = useState('')
   const [fabTaskPriority, setFabTaskPriority] = useState<Priority>(2)
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  // Load tasks from localStorage on mount
+  useEffect(() => {
+    const savedTasks = localStorage.getItem('taskcalendar-tasks')
+    if (savedTasks) {
+      try {
+        setTasks(JSON.parse(savedTasks))
+      } catch (e) {
+        console.error('Failed to parse saved tasks:', e)
+      }
+    }
+    setIsLoaded(true)
+  }, [])
+
+  // Save tasks to localStorage whenever they change
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('taskcalendar-tasks', JSON.stringify(tasks))
+    }
+  }, [tasks, isLoaded])
 
   const year = viewYear
   const month = viewMonth
