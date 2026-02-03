@@ -41,8 +41,19 @@ export default function Home() {
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), today.getDate()))
   const [mainView, setMainView] = useState<MainView>('tasks')
   const [taskFilter, setTaskFilter] = useState<TaskFilter>('all')
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    all: true,
+    overdue: true,
+    today: true,
+    unscheduled: true,
+    upcoming: true,
+    completed: true,
+  })
   const [taskSearch, setTaskSearch] = useState('')
+  const [showFabModal, setShowFabModal] = useState(false)
+  const [fabTaskTitle, setFabTaskTitle] = useState('')
+  const [fabTaskDate, setFabTaskDate] = useState('')
+  const [fabTaskPriority, setFabTaskPriority] = useState<Priority>(2)
 
   const year = viewYear
   const month = viewMonth
@@ -177,8 +188,29 @@ export default function Home() {
     return tasks.filter(t => t.status === 'done')
   }
 
+  const getAllTasks = () => {
+    return [...tasks].sort((a, b) => {
+      // Sort by date (null dates last), then by priority (high first)
+      if (a.date && b.date) return a.date.localeCompare(b.date)
+      if (a.date) return -1
+      if (b.date) return 1
+      return b.priority - a.priority
+    })
+  }
+
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }))
+  }
+
+  const allSectionKeys = ['all', 'overdue', 'today', 'unscheduled', 'upcoming', 'completed']
+  const allCollapsed = allSectionKeys.every(key => collapsedSections[key])
+
+  const toggleAllSections = () => {
+    const newState: Record<string, boolean> = {}
+    allSectionKeys.forEach(key => {
+      newState[key] = !allCollapsed
+    })
+    setCollapsedSections(newState)
   }
 
   const filterTasks = (taskList: Task[]) => {
@@ -219,6 +251,24 @@ export default function Home() {
     }
     setTasks([...tasks, newTask])
     setNewTaskTitle('')
+  }
+
+  const addTaskFromFab = () => {
+    if (!fabTaskTitle.trim()) return
+    const newTask: Task = {
+      id: Date.now(),
+      title: fabTaskTitle.trim(),
+      date: fabTaskDate || null,
+      priority: fabTaskPriority,
+      status: 'todo',
+      time: null,
+      description: null,
+    }
+    setTasks([...tasks, newTask])
+    setFabTaskTitle('')
+    setFabTaskDate('')
+    setFabTaskPriority(2)
+    setShowFabModal(false)
   }
 
   const deleteTask = (id: number) => {
@@ -393,7 +443,7 @@ export default function Home() {
   return (
     <main className={`dashboard ${draggedTaskId ? 'is-dragging' : ''}`}>
       <header className="app-header">
-        <h1 className="app-title">TaskCalendar</h1>
+        <h1 className="app-title">Jantzen's Dash</h1>
         <button onClick={goToToday} className="today-btn header-today">Today</button>
         <nav className="main-nav mobile-nav">
           <button
@@ -417,6 +467,13 @@ export default function Home() {
           <div className="panel-header">
             <h2>Tasks</h2>
             <span className="task-count">{tasks.filter(t => t.status !== 'done').length} active</span>
+            <button
+              className="collapse-all-btn"
+              onClick={toggleAllSections}
+              title={allCollapsed ? 'Expand all sections' : 'Collapse all sections'}
+            >
+              {allCollapsed ? 'Expand All' : 'Collapse All'}
+            </button>
           </div>
 
           <div className="quick-add">
@@ -452,10 +509,11 @@ export default function Home() {
           </div>
 
           <div className="task-sections">
-            {renderTaskSection('Overdue', '⚠️', getOverdueTasks(), 'overdue')}
-            {renderTaskSection('Today', '📅', getTodayTasks(), 'today', false)}
-            {renderTaskSection('Unscheduled', '📋', getUnscheduledTasks(), 'unscheduled')}
-            {renderTaskSection('Upcoming', '🔜', getUpcomingTasks(), 'upcoming')}
+            {renderTaskSection('All Tasks', '▤', getAllTasks(), 'all')}
+            {renderTaskSection('Overdue', '!', getOverdueTasks(), 'overdue')}
+            {renderTaskSection('Today', '★', getTodayTasks(), 'today', false)}
+            {renderTaskSection('Unscheduled', '○', getUnscheduledTasks(), 'unscheduled')}
+            {renderTaskSection('Upcoming', '→', getUpcomingTasks(), 'upcoming')}
             {renderTaskSection('Completed', '✓', getCompletedTasks(), 'completed')}
           </div>
         </div>
@@ -750,6 +808,58 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      <button
+        className="fab"
+        onClick={() => setShowFabModal(true)}
+        aria-label="Add new task"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+
+      {/* FAB Modal */}
+      {showFabModal && (
+        <div className="fab-modal-overlay" onClick={() => setShowFabModal(false)}>
+          <div className="fab-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="fab-modal-header">
+              <h3>New Task</h3>
+              <button className="close-btn" onClick={() => setShowFabModal(false)}>×</button>
+            </div>
+            <div className="fab-modal-body">
+              <input
+                type="text"
+                value={fabTaskTitle}
+                onChange={(e) => setFabTaskTitle(e.target.value)}
+                placeholder="Task title..."
+                autoFocus
+                onKeyDown={(e) => e.key === 'Enter' && addTaskFromFab()}
+              />
+              <div className="fab-modal-row">
+                <input
+                  type="date"
+                  value={fabTaskDate}
+                  onChange={(e) => setFabTaskDate(e.target.value)}
+                />
+                <select
+                  value={fabTaskPriority}
+                  onChange={(e) => setFabTaskPriority(Number(e.target.value) as Priority)}
+                >
+                  <option value={1}>Low</option>
+                  <option value={2}>Medium</option>
+                  <option value={3}>High</option>
+                </select>
+              </div>
+              <button className="fab-modal-submit" onClick={addTaskFromFab}>
+                Add Task
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation for Mobile */}
       <nav className="bottom-nav">
