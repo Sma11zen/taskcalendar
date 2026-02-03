@@ -23,6 +23,7 @@ main.dashboard {
   padding: 16px 24px;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 16px;
   position: sticky;
   top: 0;
@@ -1440,6 +1441,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 /* Mobile Styles */
 @media (max-width: 768px) {
   .app-header {
+    justify-content: center;
     padding: 12px 16px;
   }
 
