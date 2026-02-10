@@ -464,7 +464,10 @@ export default function Home() {
   return (
     <main className={`dashboard ${draggedTaskId ? 'is-dragging' : ''}`}>
       <header className="app-header">
-        <h1 className="app-title">Jantzen's Dash</h1>
+        <div className="app-brand">
+          <img src="/logo.png" alt="FlowSync Logo" className="app-logo" />
+          <h1 className="app-title">FlowSync</h1>
+        </div>
         <button onClick={goToToday} className="today-btn header-today">Today</button>
         <nav className="main-nav mobile-nav">
           <button
